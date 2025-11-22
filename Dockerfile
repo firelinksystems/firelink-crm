@@ -6,9 +6,9 @@ WORKDIR /app
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies
-RUN cd backend && npm ci
-RUN cd frontend && npm ci
+# Install dependencies (use npm install instead of npm ci)
+RUN cd backend && npm install
+RUN cd frontend && npm install
 
 # Copy source code
 COPY backend/ ./backend/
