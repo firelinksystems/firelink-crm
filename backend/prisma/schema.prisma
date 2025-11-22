@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id           String   @id @default(uuid())
+  companyName  String?
+  contactName  String
+  email        String   @unique
+  phone        String?
+  address      String?
+  city         String?
+  postcode     String?
+  country      String   @default("UK")
+  vatNumber    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  jobs Job[]
+  invoices Invoice[]
+  
+  @@map("customers")
+}
+
+model Engineer {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  skills      Json     // Array of skills
+  hourlyRate  Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  jobAssignments JobAssignment[]
+  
+  @@map("engineers")
+}
+
+model Job {
+  id                String   @id @default(uuid())
+  customerId        String
+  title             String
+  description       String?
+  jobType           JobType
+  status            JobStatus @default(SCHEDULED)
+  priority          Priority @default(MEDIUM)
+  scheduledStart    DateTime?
+  scheduledEnd      DateTime?
+  actualStart       DateTime?
+  actualEnd         DateTime?
+  estimatedHours    Float?
+  actualHours       Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  customer          Customer   @relation(fields: [customerId], references: [id])
+  jobAssignments    JobAssignment[]
+  jobCosts          JobCost[]
+  invoices          Invoice[]
+  
+  @@map("jobs")
+}
+
+model JobAssignment {
+  id          String   @id @default(uuid())
+  jobId       String
+  engineerId  String
+  assignedHours Float?
+  actualHours Float?
+  role        String
+  
+  job        Job      @relation(fields: [jobId], references: [id])
+  engineer   Engineer @relation(fields: [engineerId], references: [id])
+  
+  @@map("job_assignments")
+}
+
+model JobCost {
+  id          String   @id @default(uuid())
+  jobId       String
+  costType    CostType
+  description String
+  amount      Float
+  quantity    Int?    @default(1)
+  unitCost    Float?
+  dateIncurred DateTime @default(now())
+  
+  job Job @relation(fields: [jobId], references: [id])
+  
+  @@map("job_costs")
+}
+
+model Invoice {
+  id           String   @id @default(uuid())
+  jobId        String
+  invoiceNumber String  @unique
+  amount       Float
+  vatAmount    Float
+  totalAmount  Float
+  status       InvoiceStatus @default(DRAFT)
+  dueDate      DateTime
+  sentDate     DateTime?
+  paidDate     DateTime?
+  createdAt    DateTime @default(now())
+  
+  job Job @relation(fields: [jobId], references: [id])
+  
+  @@map("invoices")
+}
+
+enum JobType {
+  INSTALLATION
+  SERVICE
+  MAINTENANCE
+  EMERGENCY
+  QUOTE
+}
+
+enum JobStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  INVOICED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum CostType {
+  LABOUR
+  MATERIALS
+  TRAVEL
+  SUBCONTRACTOR
+  OTHER
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
