@@ -1,25 +1,40 @@
-FROM node:18-alpine
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { config } from './config/config';
+import { errorHandler } from './middleware/errorHandler';
+import { authRoutes } from './routes/auth';
+import { customerRoutes } from './routes/customers';
+import { jobRoutes } from './routes/jobs';
+import { schedulingRoutes } from './routes/scheduling';
+import { financialRoutes } from './routes/financial';
 
-WORKDIR /app
+const app = express();
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
+// Middleware
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-# Install dependencies
-RUN npm ci
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/scheduling', schedulingRoutes);
+app.use('/api/financial', financialRoutes);
 
-# Generate Prisma client
-RUN npx prisma generate
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
-# Copy source code
-COPY . .
+// Error handling
+app.use(errorHandler);
 
-# Build the application
-RUN npm run build
+const PORT = config.port || 3001;
 
-# Expose port
-EXPOSE 3001
-
-# Start the application
-CMD ["npm", "start"]
+app.listen(PORT, () => {
+  console.log(`FireLink Server running on port ${PORT}`);
+  console.log(`Environment: ${config.nodeEnv}`);
+});
