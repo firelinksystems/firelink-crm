@@ -1,0 +1,25 @@
+# These owners will be the default owners for everything in the repo
+* @firelinksystem/core-team
+
+# Backend code ownership
+/backend/ @firelinksystem/backend-team
+
+# Frontend code ownership
+/frontend/ @firelinksystem/frontend-team
+
+# Mobile app code ownership
+/mobile/ @firelinksystem/mobile-team
+
+# Documentation
+/docs/ @firelinksystem/documentation-team
+
+# UK Compliance related files
+/compliance/ @firelinksystem/compliance-team
+/backend/src/utils/ukVAT.ts @firelinksystem/compliance-team
+/backend/src/utils/documentGenerator.ts @firelinksystem/compliance-team
+
+# Database and migrations
+/backend/prisma/ @firelinksystem/backend-team @firelinksystem/database-team
+
+# GitHub workflows
+/.github/ @firelinksystem/devops-team
