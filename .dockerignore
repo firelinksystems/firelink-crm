@@ -1,16 +1,13 @@
-# Remove package-lock.json from being copied
-package-lock.json
-**/package-lock.json
+# Remove TypeScript files
+**/*.ts
+**/tsconfig.json
+**/src/
 
 # Node.js
 node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Build outputs
-dist
-build
 
 # Environment
 .env
