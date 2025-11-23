@@ -21,7 +21,7 @@
     "react-query": "^3.39.3",
     "chart.js": "^4.2.0",
     "react-chartjs-2": "^5.2.0",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.554.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.27",
