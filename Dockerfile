@@ -8,15 +8,11 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Copy package files
 COPY backend/package.json ./
 
-# Install dependencies - let npm create fresh lockfile
+# Install dependencies
 RUN npm install --omit=dev
 
 # Copy source code
-COPY backend/src ./src
-COPY backend/tsconfig.json ./
-
-# Build the application
-RUN npm run build
+COPY backend/server.js ./
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
