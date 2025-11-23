@@ -5,6 +5,17 @@ const app = express();
 // Middleware
 app.use(express.json());
 
+// Root endpoint - redirect to API info
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '🔥 FireLink System API',
+    version: '1.0.0',
+    description: 'CRM for UK Fire & Security Companies',
+    documentation: 'Visit /api for available endpoints',
+    health: 'Visit /health for service status'
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -23,11 +34,16 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     description: 'CRM for UK Fire & Security Companies',
     endpoints: [
+      'GET  /',
       'GET  /health',
       'GET  /api',
       'GET  /api/customers',
+      'GET  /api/customers/:id',
       'GET  /api/jobs',
-      'GET  /api/engineers'
+      'GET  /api/jobs/:id',
+      'GET  /api/engineers',
+      'GET  /api/scheduling/calendar',
+      'GET  /api/financial/invoices'
     ]
   });
 });
@@ -41,7 +57,17 @@ const customers = [
     email: 'john@abcsecurity.com',
     phone: '+441234567890',
     address: '123 Business Park, London',
-    postcode: 'SW1A 1AA'
+    postcode: 'SW1A 1AA',
+    vatNumber: 'GB123456789'
+  },
+  {
+    id: '2',
+    companyName: 'XYZ Manufacturing',
+    contactName: 'Sarah Johnson',
+    email: 'sarah@xyzmanufacturing.com',
+    phone: '+441234567891',
+    address: '456 Industrial Estate, Manchester',
+    postcode: 'M1 1AB'
   }
 ];
 
@@ -57,6 +83,19 @@ const jobs = [
     scheduledStart: '2024-02-01T09:00:00Z',
     scheduledEnd: '2024-02-01T17:00:00Z',
     estimatedHours: 8
+  },
+  {
+    id: '2',
+    customerId: '2',
+    title: 'Emergency Lighting Service',
+    description: 'Routine service and testing of emergency lighting systems',
+    jobType: 'SERVICE',
+    status: 'COMPLETED',
+    priority: 'MEDIUM',
+    scheduledStart: '2024-01-15T10:00:00Z',
+    scheduledEnd: '2024-01-15T14:00:00Z',
+    estimatedHours: 4,
+    actualHours: 3.5
   }
 ];
 
@@ -69,15 +108,45 @@ const engineers = [
     skills: ['fire_alarms', 'cctv', 'access_control'],
     hourlyRate: 45.00,
     isActive: true
+  },
+  {
+    id: '2',
+    name: 'Sarah Technician',
+    email: 'sarah@firelinksystem.com',
+    phone: '+441234567892',
+    skills: ['emergency_lighting', 'fire_extinguishers'],
+    hourlyRate: 40.00,
+    isActive: true
   }
 ];
 
 // Customers API
 app.get('/api/customers', (req, res) => {
+  const { search, page = 1, limit = 10 } = req.query;
+  
+  let filteredCustomers = customers;
+  
+  // Basic search functionality
+  if (search) {
+    filteredCustomers = customers.filter(customer => 
+      customer.companyName?.toLowerCase().includes(search.toLowerCase()) ||
+      customer.contactName.toLowerCase().includes(search.toLowerCase()) ||
+      customer.email.toLowerCase().includes(search.toLowerCase())
+    );
+  }
+  
+  // Basic pagination
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + parseInt(limit);
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+  
   res.json({
     success: true,
-    data: customers,
-    total: customers.length
+    data: paginatedCustomers,
+    total: filteredCustomers.length,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    totalPages: Math.ceil(filteredCustomers.length / limit)
   });
 });
 
@@ -90,23 +159,52 @@ app.get('/api/customers/:id', (req, res) => {
     });
   }
   
+  // Get customer's jobs
+  const customerJobs = jobs.filter(job => job.customerId === req.params.id);
+  
   res.json({
     success: true,
-    data: customer
+    data: {
+      ...customer,
+      jobs: customerJobs
+    }
   });
 });
 
 // Jobs API
 app.get('/api/jobs', (req, res) => {
-  const jobsWithCustomers = jobs.map(job => ({
+  const { status, customerId, page = 1, limit = 10 } = req.query;
+  
+  let filteredJobs = jobs;
+  
+  // Filter by status
+  if (status) {
+    filteredJobs = filteredJobs.filter(job => job.status === status.toUpperCase());
+  }
+  
+  // Filter by customer
+  if (customerId) {
+    filteredJobs = filteredJobs.filter(job => job.customerId === customerId);
+  }
+  
+  // Add customer details to jobs
+  const jobsWithCustomers = filteredJobs.map(job => ({
     ...job,
     customer: customers.find(c => c.id === job.customerId)
   }));
   
+  // Basic pagination
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + parseInt(limit);
+  const paginatedJobs = jobsWithCustomers.slice(startIndex, endIndex);
+  
   res.json({
     success: true,
-    data: jobsWithCustomers,
-    total: jobs.length
+    data: paginatedJobs,
+    total: filteredJobs.length,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    totalPages: Math.ceil(filteredJobs.length / limit)
   });
 });
 
@@ -147,7 +245,7 @@ app.get('/api/scheduling/calendar', (req, res) => {
     title: job.title,
     start: job.scheduledStart,
     end: job.scheduledEnd,
-    engineer: 'Mike Engineer',
+    engineer: 'Mike Engineer', // In real app, this would come from assignments
     customer: customers.find(c => c.id === job.customerId)?.companyName,
     status: job.status.toLowerCase()
   }));
@@ -170,22 +268,75 @@ app.get('/api/financial/invoices', (req, res) => {
       totalAmount: 3000.00,
       status: 'SENT',
       dueDate: '2024-02-15T00:00:00Z',
-      sentDate: '2024-01-20T00:00:00Z'
+      sentDate: '2024-01-20T00:00:00Z',
+      job: {
+        title: 'Fire Alarm Installation - Office Building',
+        customer: {
+          companyName: 'ABC Security Ltd'
+        }
+      }
+    },
+    {
+      id: '2',
+      jobId: '2',
+      invoiceNumber: 'INV-002',
+      amount: 600.00,
+      vatAmount: 120.00,
+      totalAmount: 720.00,
+      status: 'PAID',
+      dueDate: '2024-01-30T00:00:00Z',
+      sentDate: '2024-01-16T00:00:00Z',
+      paidDate: '2024-01-25T00:00:00Z',
+      job: {
+        title: 'Emergency Lighting Service',
+        customer: {
+          companyName: 'XYZ Manufacturing'
+        }
+      }
     }
   ];
   
   res.json({
     success: true,
-    data: invoices
+    data: invoices,
+    total: invoices.length
   });
 });
 
-// 404 handler
+// Profit & Loss API
+app.get('/api/financial/profit-loss', (req, res) => {
+  const report = {
+    period: {
+      startDate: '2024-01-01',
+      endDate: '2024-01-31'
+    },
+    revenue: 3720.00,
+    costs: {
+      labour: 800.00,
+      materials: 450.00,
+      travel: 120.00,
+      subcontractor: 0.00,
+      overhead: 500.00
+    },
+    totalCosts: 1870.00,
+    grossProfit: 1850.00,
+    netProfit: 1850.00,
+    margin: 49.7
+  };
+  
+  res.json({
+    success: true,
+    data: report
+  });
+});
+
+// 404 handler - should be last
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     error: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
+    suggestion: 'Try visiting /api for available endpoints'
   });
 });
 
@@ -203,6 +354,9 @@ const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`🔥 FireLink Server running on port ${PORT}`);
+  console.log(`🌐 Root: http://localhost:${PORT}/`);
   console.log(`📊 Health: http://localhost:${PORT}/health`);
   console.log(`🚀 API: http://localhost:${PORT}/api`);
+  console.log(`💼 Customers: http://localhost:${PORT}/api/customers`);
+  console.log(`🔧 Jobs: http://localhost:${PORT}/api/jobs`);
 });
