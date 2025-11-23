@@ -4,12 +4,10 @@ const options = {
   host: 'localhost',
   port: 3001,
   path: '/health',
-  timeout: 2000,
-  method: 'GET'
+  timeout: 2000
 };
 
 const request = http.request(options, (res) => {
-  console.log(`STATUS: ${res.statusCode}`);
   if (res.statusCode === 200) {
     process.exit(0);
   } else {
@@ -18,12 +16,12 @@ const request = http.request(options, (res) => {
 });
 
 request.on('error', (err) => {
-  console.error('ERROR', err);
+  console.error('Health check failed:', err);
   process.exit(1);
 });
 
 request.on('timeout', () => {
-  console.error('TIMEOUT');
+  console.error('Health check timeout');
   request.destroy();
   process.exit(1);
 });
