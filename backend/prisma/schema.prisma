@@ -22,7 +22,6 @@ model Customer {
   updatedAt    DateTime @updatedAt
   
   jobs Job[]
-  invoices Invoice[]
   
   @@map("customers")
 }
@@ -112,6 +111,21 @@ model Invoice {
   job Job @relation(fields: [jobId], references: [id])
   
   @@map("invoices")
+}
+
+model Payment {
+  id           String   @id @default(uuid())
+  invoiceId    String
+  amount       Float
+  paymentMethod String
+  paymentType  String
+  processedAt  DateTime @default(now())
+  status       String
+  reference    String
+  
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  
+  @@map("payments")
 }
 
 enum JobType {
