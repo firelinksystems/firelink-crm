@@ -1,13 +1,6 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /app
-
-# Install OpenSSL and other dependencies
-RUN apk add --no-cache \
-    openssl \
-    postgresql-client \
-    bash \
-    curl
 
 # Copy backend files
 COPY backend/package*.json ./
@@ -27,11 +20,8 @@ COPY backend/tsconfig.json ./
 RUN npm run build
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S appuser -u 1001
-
-# Change ownership
-RUN chown -R appuser:nodejs /app
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
@@ -41,7 +31,7 @@ EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
+    CMD node health-check.js
 
 # Start the application
 CMD ["npm", "start"]
