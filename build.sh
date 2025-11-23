@@ -3,21 +3,20 @@
 # Simple build script for FireLink System
 set -e
 
-echo "Building FireLink System..."
+echo "Building FireLink System Backend..."
 
-# Build backend
-echo "Building backend..."
 cd backend
-npm install
-npx prisma generate
-npm run build
-cd ..
 
-# Build frontend  
-echo "Building frontend..."
-cd frontend
+# Install dependencies
+echo "Installing dependencies..."
 npm install
+
+# Generate Prisma client
+echo "Generating Prisma client..."
+npx prisma generate
+
+# Build TypeScript
+echo "Building TypeScript..."
 npm run build
-cd ..
 
 echo "Build completed successfully!"
